@@ -271,6 +271,9 @@ def main(neural_data, gpu_id=None):
 	print('Ensure that the input array is of shape [time x trials x neurons].')
 	print('Given array shape: {}'.format(neural_data.shape))
 
+	print('\nRunning with parameters:')
+	[print('{:<16} : {}'.format(k,v)) for k, v in par.items()]
+
 	if gpu_id is not None:
 		os.environ['CUDA_VISIBLE_DEVICES'] = gpu_id
 
@@ -307,7 +310,7 @@ def main(neural_data, gpu_id=None):
 				ax[1].set_ylabel('Neurons')
 				ax[1].set_title('Reconstruction')
 				plt.suptitle('Reconstruction Comparison')
-				plt.savefig('./plotdir/reconstruction.png', bbox_inches='tight')
+				plt.savefig('./plotdir/{}reconstruction.png'.format(par['savefn']), bbox_inches='tight')
 				plt.clf()
 				plt.close()
 
@@ -322,20 +325,24 @@ def main(neural_data, gpu_id=None):
 				ax[0,0].set_title('Neural Data')
 				ax[1,0].set_title('Factors')
 				plt.suptitle('Neural State Factorization')
-				plt.savefig('./plotdir/factorization.png', bbox_inches='tight')
+				plt.savefig('./plotdir/{}factorization.png'.format(par['savefn']), bbox_inches='tight')
 				plt.clf()
 				plt.close()
 
 				print('Iter {:>5} | Recon. Loss: {:5.3f} | KL Loss: {:5.3f} | Weight Loss: {:5.3f} |'.format(\
 					i, recon_loss, KL_loss, weight_loss))
 
+			weights, = sess.run([model.var_dict])
+
 	print('\nLFADS model complete - neural data successfully processed.')
 	print('Compiling reconstructions and factorization data.')
 	savedata = {
 		'reconstruction'	: recon,
 		'factorization'		: factors,
-		'final_losses'		: {'recon':recon_loss, 'KL_loss':KL_loss, 'weight_loss':weight_loss}
+		'final_losses'		: {'recon':recon_loss, 'KL_loss':KL_loss, 'weight_loss':weight_loss},
+		'model_weights'		: weights,
+		'parameters'		: par
 	}
 
-	pickle.dump(savedata, open(par['savedir']+'factorization_data.pkl', 'wb'))
+	pickle.dump(savedata, open(par['savedir']+par['savefn']+'factorization_data.pkl', 'wb'))
 	print('Data saved!  Model compete.\n')
