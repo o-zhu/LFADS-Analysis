@@ -3,13 +3,13 @@ import pickle
 import numpy as np
 import sys
 
-file = './datadir/DMS_v0.pkl'
+file = 'activities.pckl'
 
-data = pickle.load(open(file, 'rb'))
-neural_data = data['h']
+y, h, syn_x, syn_u = pickle.load(open(file, 'rb'))
+neural_data = h
 
 print('Starting shape: {}'.format(neural_data.shape))
-neural_data = np.transpose(neural_data, [1,2,0])
+#neural_data = np.transpose(neural_data, [1,2,0])
 print('Usable shape:  {}'.format(neural_data.shape))
 
 gpu_id = sys.argv[1] if len(sys.argv) > 1 else None

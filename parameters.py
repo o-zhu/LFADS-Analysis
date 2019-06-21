@@ -11,7 +11,7 @@ print("\n--> Loading parameters...")
 par = {
 	# Setup parameters
 	'savedir'			: './savedir/',
-	'training_iters'	: 250000,
+	'training_iters'	: 2000,
 
 	# Model configuration
 	'n_hidden_enc'		: 64,
