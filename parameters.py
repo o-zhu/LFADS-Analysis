@@ -12,6 +12,7 @@ par = {
 	# Setup parameters
 	'savedir'			: './savedir/',
 	'training_iters'	: 2000,
+	'use_controller'	: False,
 
 	# Model configuration
 	'n_hidden_enc'		: 64,
@@ -25,8 +26,10 @@ par = {
 	'recon_cost'		: 1.,
 	'weight_cost'		: 1e-3,
 	'learning_rate'		: 5e-4,
+	'controller_dim'	: 0,
 
 }
 
 par['savefn'] = 'factors{}_iters{}_KL{}_'.format(\
 	par['n_factors'], par['training_iters'], np.int32(100*par['KL_cost']))
+

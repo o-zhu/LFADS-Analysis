@@ -1,5 +1,7 @@
 ### Authors: Nicolas Y. Masse, Gregory D. Grant
 
+# Edits to ignore the controller, parameter use_controller=False
+
 # Required packages
 import tensorflow as tf
 import numpy as np
@@ -82,8 +84,9 @@ class Model:
 		# Collect variables prefixes
 		lstm_prefixes   = ['Wf', 'Wi', 'Wo', 'Wc', 'Uf', 'Ui', 'Uo', 'Uc', 'bf', 'bi', 'bo', 'bc']
 		latent_prefixes = ['W_mu', 'W_si', 'b_mu', 'b_si']
-		gencon_prefixes = ['W_enc_con', 'W_gen_fac', 'W_fac_con', 'W_fac_rates', \
-			'b_enc_con', 'b_gen_fac', 'b_fac_con', 'b_fac_rates']
+
+		#if par['use_controller']:
+		gencon_prefixes = ['W_enc_con', 'W_gen_fac', 'W_fac_con', 'W_fac_rates', 'b_enc_con', 'b_gen_fac', 'b_fac_con', 'b_fac_rates']
 
 		# Add variable suffixes
 		lstm_suffixes   = ['_enc_f', '_enc_b', '_gen', '_con']
@@ -126,6 +129,7 @@ class Model:
 			self.var_dict[p+s] = self.make_var(p+s, d0, d1)
 
 		# Connection variables
+
 		for p in gencon_prefixes:
 
 			if 'enc_con' in p:
@@ -190,8 +194,10 @@ class Model:
 		# Make initial generator and controller states
 		hg = g0_mu + tf.exp(0.5*g0_si)*tf.random_normal([self.batch_size, par['n_hidden_gen']], 0, 1)
 		cg = tf.zeros([self.batch_size, par['n_hidden_gen']])
-		hc = tf.zeros([self.batch_size, par['n_hidden_con']])
-		cc = tf.zeros([self.batch_size, par['n_hidden_con']])
+
+		if par['use_controller']:
+			hc = tf.zeros([self.batch_size, par['n_hidden_con']])
+			cc = tf.zeros([self.batch_size, par['n_hidden_con']])
 
 		# Make initial factor state
 		f = tf.nn.relu(hg @ self.var_dict['W_gen_fac'] + self.var_dict['b_gen_fac'])
@@ -199,20 +205,28 @@ class Model:
 		# Loop through time (1 to T for both forward and backward encoders)
 		for x, hf, hb in zip(self.input_data, self.enc_f, self.enc_b):
 
-			# 1. Combine factors and encodings; submit to controller
-			Z = tf.concat([hf, hb, f], axis=-1)
-			hc, cc = self.recurrent_cell(hc, cc, Z, '_con')
+			if par['use_controller']:
+				# 1. Combine factors and encodings; submit to controller
+				Z = tf.concat([hf, hb, f], axis=-1)
+				hc, cc = self.recurrent_cell(hc, cc, Z, '_con')
 
-			# 2. Sample from controller
-			con_mu = Z @ self.var_dict['W_mu_con'] + self.var_dict['b_mu_con']
-			con_si = Z @ self.var_dict['W_si_con'] + self.var_dict['b_si_con']
-			con = con_mu + tf.exp(0.5*con_si)*tf.random_normal([self.batch_size, par['n_latent']], 0, 1)
+				# 2. Sample from controller
+				con_mu = Z @ self.var_dict['W_mu_con'] + self.var_dict['b_mu_con']
+				con_si = Z @ self.var_dict['W_si_con'] + self.var_dict['b_si_con']
+				con = con_mu + tf.exp(0.5*con_si)*tf.random_normal([self.batch_size, par['n_latent']], 0, 1)
 
-			# -- Add KL loss from controller state
-			self.KL_loss += self.KL_loss_lambda(con_mu, con_si)/self.time_steps
+				# -- Add KL loss from controller state
+				self.KL_loss += self.KL_loss_lambda(con_mu, con_si)/self.time_steps
+
+				gen_input = tf.concat([f,con],axis=-1)
+
+			else:
+				gen_input = f
 
 			# 3. Project sample to generator
-			hg, cg = self.recurrent_cell(hg, cg, con, '_gen')
+			
+			hg, cg = self.recurrent_cell(hg, cg, gen_input, '_gen')
+			
 
 			# 4. Project generator to factors
 			f = tf.nn.relu(hg @ self.var_dict['W_gen_fac'] + self.var_dict['b_gen_fac'])
